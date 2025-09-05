@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <title>Мои заметки</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./CSS/style.css">
+</head>
+<body>
+    <button class="edit-btn" onclick="openEditModal()" title="Редактировать задачи">
+        ✏️
+    </button>
+
+    <p>Добавь задачу!</p>
+    
+    <div class="input-container">
+        <input type="text" id="task-input" placeholder="Введите новую задачу...">
+        <button id="add-task-btn">Добавить задачу</button>
+    </div>
+
+    <ul id="tasks-list"></ul>
+
+    <!-- Модальное окно для редактирования -->
+    <div id="edit-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h2>Редактировать задачи</h2>
+            <div id="edit-tasks-container"></div>
+            <button onclick="saveEditedTasks()">Сохранить изменения</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const taskInput = document.getElementById('task-input');
+            const addTaskBtn = document.getElementById('add-task-btn');
+            const tasksList = document.getElementById('tasks-list');
+
+            loadTasks();
+
+            addTaskBtn.addEventListener('click', addTask);
+
+            taskInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addTask();
+                }
+            });
+
+            function addTask() {
+                const taskText = taskInput.value.trim();
+
+                if (taskText !== '') {
+                    const taskItem = document.createElement('li');
+                    taskItem.className = 'task-item';
+
+                    const taskTextSpan = document.createElement('span');
+                    taskTextSpan.textContent = taskText;
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.textContent = 'Удалить';
+                    deleteBtn.addEventListener('click', function() {
+                        tasksList.removeChild(taskItem);
+                        saveTasks();
+                    });
+
+                    taskItem.appendChild(taskTextSpan);
+                    taskItem.appendChild(deleteBtn);
+
+                    tasksList.appendChild(taskItem);
+
+                    taskInput.value = '';
+
+                    saveTasks();
+                }
+            }
+
+            function saveTasks() {
+                const tasks = [];
+                document.querySelectorAll('.task-item span').forEach(function(task) {
+                    tasks.push(task.textContent);
+                });
+                localStorage.setItem('dailyTasks', JSON.stringify(tasks));
+            }
+
+            function loadTasks() {
+                const savedTasks = localStorage.getItem('dailyTasks');
+                if (savedTasks) {
+                    const tasks = JSON.parse(savedTasks);
+                    tasks.forEach(function(taskText) {
+                        const taskItem = document.createElement('li');
+                        taskItem.className = 'task-item';
+
+                        const taskTextSpan = document.createElement('span');
+                        taskTextSpan.textContent = taskText;
+
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'delete-btn';
+                        deleteBtn.textContent = 'Удалить';
+                        deleteBtn.addEventListener('click', function() {
+                            tasksList.removeChild(taskItem);
+                            saveTasks();
+                        });
+
+                        taskItem.appendChild(taskTextSpan);
+                        taskItem.appendChild(deleteBtn);
+                        tasksList.appendChild(taskItem);
+                    });
+                }
+            }
+        });
+
+        // Функции для модального окна редактирования
+        function openEditModal() {
+            const modal = document.getElementById('edit-modal');
+            const container = document.getElementById('edit-tasks-container');
+            
+            // Очищаем контейнер
+            container.innerHTML = '';
+            
+            // Получаем текущие задачи
+            const tasks = [];
+            document.querySelectorAll('.task-item span').forEach(function(task) {
+                tasks.push(task.textContent);
+            });
+            
+            // Создаем поля для редактирования
+            tasks.forEach(function(task, index) {
+                const taskDiv = document.createElement('div');
+                taskDiv.className = 'edit-task-item';
+                taskDiv.innerHTML = `
+                    <input type="text" value="${task}" class="edit-task-input" data-index="${index}">
+                    <button onclick="deleteEditTask(${index})" class="delete-edit-btn">Удалить</button>
+                `;
+                container.appendChild(taskDiv);
+            });
+            
+            modal.style.display = 'block';
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+        }
+
+        function deleteEditTask(index) {
+            const container = document.getElementById('edit-tasks-container');
+            const taskDivs = container.querySelectorAll('.edit-task-item');
+            if (taskDivs[index]) {
+                taskDivs[index].remove();
+            }
+        }
+
+        function saveEditedTasks() {
+            const container = document.getElementById('edit-tasks-container');
+            const inputs = container.querySelectorAll('.edit-task-input');
+            const tasks = [];
+            
+            inputs.forEach(function(input) {
+                const text = input.value.trim();
+                if (text !== '') {
+                    tasks.push(text);
+                }
+            });
+            
+            // Сохраняем в localStorage
+            localStorage.setItem('dailyTasks', JSON.stringify(tasks));
+            
+            // Обновляем список на странице
+            const tasksList = document.getElementById('tasks-list');
+            tasksList.innerHTML = '';
+            
+            tasks.forEach(function(taskText) {
+                const taskItem = document.createElement('li');
+                taskItem.className = 'task-item';
+                const taskTextSpan = document.createElement('span');
+                taskTextSpan.textContent = taskText;
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.textContent = 'Удалить';
+                deleteBtn.addEventListener('click', function() {
+                    tasksList.removeChild(taskItem);
+                    saveTasks();
+                });
+
+                taskItem.appendChild(taskTextSpan);
+                taskItem.appendChild(deleteBtn);
+                tasksList.appendChild(taskItem);
+            });
+            
+            closeEditModal();
+        }
+
+        // Закрытие модального окна при клике вне его
+        window.onclick = function(event) {
+            const modal = document.getElementById('edit-modal');
+            if (event.target === modal) {
+                closeEditModal();
+            }
+        }
+    </script>
+</body>
+</html>
